@@ -98,6 +98,13 @@ module.exports = app => {
         if (isCore) {
             labelList.push('PR: author is committer');
         }
+
+        const defaultBranch = context.payload.repository.default_branch;
+        const base = context.payload.pull_request.base;
+        if (base.ref !== defaultBranch) {
+            labelList.push('Branch: ' + base.ref);
+        }
+
         const addLabel = context.github.issues.addLabels(context.issue({
             labels: labelList
         }));
