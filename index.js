@@ -25,7 +25,7 @@ module.exports = app => {
     });
 
     app.on('issues.labeled', async context => {
-        var replaceAt = function (comment) {
+        const replaceAt = function (comment) {
             return replaceAll(
                 comment,
                 'AT_ISSUE_AUTHOR',
@@ -128,12 +128,12 @@ module.exports = app => {
         let addLabel;
         let removeLabel;
         if (changedBase && changedBase.ref.from === defaultBranch && base.ref !== defaultBranch) {
-          addLabel = context.github.issues.addLabels(context.issue({
-              labels: ['Branch: ' + base.ref]
-          }));
+            addLabel = context.github.issues.addLabels(context.issue({
+                labels: ['Branch: ' + base.ref]
+            }));
         }
         if (changedBase && changedBase.ref.from !== defaultBranch) {
-          removeLabel = getRemoveLabel(context, 'Branch: ' + changedBase.ref.from);
+            removeLabel = getRemoveLabel(context, 'Branch: ' + changedBase.ref.from);
         }
         return Promise.all([addLabel, removeLabel]);
     });

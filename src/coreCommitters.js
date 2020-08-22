@@ -1,29 +1,29 @@
 const committers = [
-  'pissang',
-  '100pah',
-  'Ovilia',
-  'deqingli',
-  'Wdingding',
-  'susiwen8',
-  'cuijian-dexter',
-  'SnailSword',
-  'plainheart',
-  'wf123537200',
-  'yufeng04',
-  'chfw',
-  'alex2wong',
-  'ClemMakesApps'
+    'pissang',
+    '100pah',
+    'Ovilia',
+    'deqingli',
+    'Wdingding',
+    'susiwen8',
+    'cuijian-dexter',
+    'SnailSword',
+    'plainheart',
+    'wf123537200',
+    'yufeng04',
+    'chfw',
+    'alex2wong',
+    'ClemMakesApps'
 ];
 
 function getCoreCommitters() {
-  return committers;
+    return committers;
 }
 
 function isCoreCommitter(user) {
-  return committers.indexOf(user) > -1;
+    return committers.indexOf(user) > -1;
 }
 
 module.exports = {
-  getCoreCommitters,
-  isCoreCommitter
+    getCoreCommitters,
+    isCoreCommitter
 };
