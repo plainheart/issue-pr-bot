@@ -74,7 +74,7 @@ module.exports = app => {
         const isCommenterAuthor = commenter === context.payload.issue.user.login;
         let removeLabel;
         let addLabel;
-        if (isCommitter(context.payload.comment.author_association)) {
+        if (isCoreCommitter(commenter)) {
             // New comment from core committers
             removeLabel = getRemoveLabel(context, 'waiting-for: community');
         }
@@ -155,7 +155,7 @@ module.exports = app => {
 
     app.on(['pull_request_review.submitted'], async context => {
         if (context.payload.review.state === 'changes_requested'
-            && isCommitter(context.payload.review.author_association)
+            && isCoreCommitter(context.payload.review.user.login)
         ) {
             const addLabel = context.github.issues.addLabels(context.issue({
                 labels: ['PR: revision needed']
