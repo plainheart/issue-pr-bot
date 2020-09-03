@@ -94,7 +94,11 @@ module.exports = app => {
             ? text.PR_OPENED_BY_COMMITTER
             : text.PR_OPENED;
 
-        const labelList = ['PR: awaiting review'];
+        const labelList = [];
+        // const isDraft = !!context.payload.pull_request.draft;
+        // if (isDraft) {
+            labelList.push('PR: awaiting review');
+        // }
         if (isCore) {
             labelList.push('PR: author is committer');
         }
@@ -130,33 +134,48 @@ module.exports = app => {
         return Promise.all([addLabel, removeLabel]);
     });
 
+    // seems no event for convert_to_draft
+    // app.on(['pull_request.ready_for_review'], async context => {
+    //     return context.github.issues.addLabels(context.issue({
+    //         labels: ['PR: awaiting review']
+    //     }));
+    // });
+
     app.on(['pull_request.edited'], async context => {
         const addLabels = [];
         const removeLabels = [];
 
+        // const isDraft = !!context.payload.pull_request.draft
+        // if (isDraft) {
+        //     removeLabels.push(getRemoveLabel(context, 'PR: awaiting review'));
+        // }
+        // else {
+        //     addLabels.push('PR: awaiting review');
+        // }
+
         const content = context.payload.pull_request.body;
         if (content && content.indexOf('[x] The API has been changed.') > -1) {
-            addLabels.push(context.github.issues.addLabels(context.issue({
-                labels: ['PR: awaiting doc']
-            })));
+            addLabels.push('PR: awaiting doc');
         }
         else {
             removeLabels.push(getRemoveLabel(context, 'PR: awaiting doc'));
         }
 
-        const labels = []
         const defaultBranch = context.payload.repository.default_branch;
         const base = context.payload.pull_request.base;
         const changedBase = context.payload.changes.base;
         if (changedBase && changedBase.ref.from === defaultBranch && base.ref !== defaultBranch) {
-            addLabels.push(context.github.issues.addLabels(context.issue({
-                labels: ['Branch: ' + base.ref]
-            })));
+            addLabels.push('Branch: ' + base.ref);
         }
         if (changedBase && changedBase.ref.from !== defaultBranch) {
             removeLabel.push(getRemoveLabel(context, 'Branch: ' + changedBase.ref.from));
         }
-        return Promise.all(removeLabels.concat(addLabels));
+
+        const addLabel = context.github.issues.addLabels(context.issue({
+            labels: addLabels
+        }));
+
+        return Promise.all(removeLabels.concat([addLabel]));
     });
 
     app.on(['pull_request.closed'], async context => {
