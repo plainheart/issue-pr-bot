@@ -90,13 +90,19 @@ module.exports = app => {
 
     app.on(['pull_request.opened'], async context => {
         const isCore = isCoreCommitter(context.payload.pull_request.user.login);
-        const comment = context.github.issues.createComment(context.issue({
-            body: isCore ? text.PR_OPENED_BY_COMMITTER : text.PR_OPENED
-        }));
+        let commentText = isCore
+            ? text.PR_OPENED_BY_COMMITTER
+            : text.PR_OPENED;
 
         const labelList = ['PR: awaiting review'];
         if (isCore) {
             labelList.push('PR: author is committer');
+        }
+
+        const content = context.payload.pull_request.body;
+        if (content && content.indexOf('[x] The API has been changed.') > -1) {
+            labelList.push('PR: awaiting doc');
+            commentText += '\n\n' + text.PR_AWAITING_DOC;
         }
 
         const defaultBranch = context.payload.repository.default_branch;
@@ -104,6 +110,10 @@ module.exports = app => {
         if (base.ref !== defaultBranch) {
             labelList.push('Branch: ' + base.ref);
         }
+
+        const comment = context.github.issues.createComment(context.issue({
+            body: commentText
+        }));
 
         const addLabel = context.github.issues.addLabels(context.issue({
             labels: labelList
@@ -121,21 +131,32 @@ module.exports = app => {
     });
 
     app.on(['pull_request.edited'], async context => {
+        const addLabels = [];
+        const removeLabels = [];
+
+        const content = context.payload.pull_request.body;
+        if (content && content.indexOf('[x] The API has been changed.') > -1) {
+            addLabels.push(context.github.issues.addLabels(context.issue({
+                labels: ['PR: awaiting doc']
+            })));
+        }
+        else {
+            removeLabels.push(getRemoveLabel(context, 'PR: awaiting doc'));
+        }
+
         const labels = []
         const defaultBranch = context.payload.repository.default_branch;
         const base = context.payload.pull_request.base;
         const changedBase = context.payload.changes.base;
-        let addLabel;
-        let removeLabel;
         if (changedBase && changedBase.ref.from === defaultBranch && base.ref !== defaultBranch) {
-            addLabel = context.github.issues.addLabels(context.issue({
+            addLabels.push(context.github.issues.addLabels(context.issue({
                 labels: ['Branch: ' + base.ref]
-            }));
+            })));
         }
         if (changedBase && changedBase.ref.from !== defaultBranch) {
-            removeLabel = getRemoveLabel(context, 'Branch: ' + changedBase.ref.from);
+            removeLabel.push(getRemoveLabel(context, 'Branch: ' + changedBase.ref.from));
         }
-        return Promise.all([addLabel, removeLabel]);
+        return Promise.all(removeLabels.concat(addLabels));
     });
 
     app.on(['pull_request.closed'], async context => {
