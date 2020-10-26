@@ -51,7 +51,7 @@ class Issue {
     this.addLabels.push(this.issueType)
 
     const isInEnglish = this._contain('This issue is in English')
-    if (isInEnglish) {
+    if (isInEnglish && this.body.match(/[\u4e00-\u9fa5]/g).length < 10) {
       this.addLabels.push('en')
     }
   }
