@@ -17,7 +17,7 @@ The average response time is expected to be within one day for weekdays.
 
 In the meanwhile, please make sure that **you have posted enough image to demo your request**. You may also check out the [API](http://echarts.apache.org/api.html) and [chart option](http://echarts.apache.org/option.html) to get the answer.
 
-If you don't get helped for a long time (over a week) or have an urgent question to ask, you may also send an email to dev@echarts.apache.org. Please attach the issue link if it's a technical questions.
+If you don't get helped for a long time (over a week) or have an urgent question to ask, you may also send an email to dev@echarts.apache.org. Please attach the issue link if it's a technical question.
 
 If you are interested in the project, you may also subscribe our [mailing list](https://echarts.apache.org/en/maillist.html).
 
