@@ -57,7 +57,7 @@ class Issue {
     this.addLabels.push(this.issueType)
 
     const isInEnglish = this._contain('This issue is in English')
-    if (isInEnglish && !this._isUsingMainlyChinese()) {
+    if (isInEnglish && !this._isMainlyUsingChinese()) {
       this.addLabels.push('en')
     }
   }
