@@ -98,10 +98,10 @@ module.exports = (app) => {
       : text.PR_OPENED
 
     const labelList = []
-    // const isDraft = !!context.payload.pull_request.draft;
-    // if (isDraft) {
-    labelList.push('PR: awaiting review')
-    // }
+    const isDraft = !!context.payload.pull_request.draft
+    if (isDraft) {
+      labelList.push('PR: awaiting review')
+    }
     if (isCore) {
       labelList.push('PR: author is committer')
     }
@@ -137,24 +137,24 @@ module.exports = (app) => {
     return Promise.all([addLabel, removeLabel])
   })
 
-  // seems no event for convert_to_draft
-  // app.on(['pull_request.ready_for_review'], async context => {
-  //     return context.octokit.issues.addLabels(context.issue({
-  //         labels: ['PR: awaiting review']
-  //     }));
-  // });
+  // TODO: seems no event for convert_to_draft
+  app.on(['pull_request.ready_for_review'], async context => {
+      return context.octokit.issues.addLabels(context.issue({
+          labels: ['PR: awaiting review']
+      }));
+  });
 
   app.on(['pull_request.edited'], async context => {
     const addLabels = []
     const removeLabels = []
 
-    // const isDraft = !!context.payload.pull_request.draft
-    // if (isDraft) {
-    //     removeLabels.push(getRemoveLabel(context, 'PR: awaiting review'));
-    // }
-    // else {
-    //     addLabels.push('PR: awaiting review');
-    // }
+    const isDraft = !!context.payload.pull_request.draft
+    if (isDraft) {
+        removeLabels.push(getRemoveLabel(context, 'PR: awaiting review'));
+    }
+    else {
+        addLabels.push('PR: awaiting review');
+    }
 
     const content = context.payload.pull_request.body
     if (content && content.indexOf('[x] The API has been changed.') > -1) {
