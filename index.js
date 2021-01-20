@@ -138,6 +138,8 @@ module.exports = (app) => {
   })
 
   // TODO: seems no event for convert_to_draft
+  // https://github.community/t/what-is-event-activity-types-marked-this-pull-request-as-draft-in-github-action/18306/3
+  // https://github.community/t/no-way-to-update-pull-request-draft-state/141890
   app.on(['pull_request.ready_for_review'], async context => {
       return context.octokit.issues.addLabels(context.issue({
           labels: ['PR: awaiting review']
