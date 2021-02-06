@@ -2,6 +2,8 @@ const Issue = require('./src/issue')
 const text = require('./src/text')
 const { isCommitter } = require('./src/coreCommitters')
 const logger = require('./src/logger')
+const translator = require('./src/translator')
+const { replaceAll, removeCodeAndComment } = require('./src/util')
 
 module.exports = (app) => {
   app.on(['issues.opened'], async context => {
@@ -10,7 +12,7 @@ module.exports = (app) => {
     // Ignore comment because it will commented when adding invalid label
     const comment = issue.response === text.NOT_USING_TEMPLATE
       ? Promise.resolve()
-      : commentIssue(context, issue.response)
+      : commentIssue(context, issue.response, issue.response === text.ISSUE_CREATED)
 
     const addLabels = issue.addLabels.length
       ? context.octokit.issues.addLabels(context.issue({
@@ -90,9 +92,9 @@ module.exports = (app) => {
 
   app.on(['pull_request.opened'], async context => {
     const isCore = isCommitter(
-        context.payload.pull_request.author_association,
-        context.payload.pull_request.user.login
-    );
+      context.payload.pull_request.author_association,
+      context.payload.pull_request.user.login
+    )
     let commentText = isCore
       ? text.PR_OPENED_BY_COMMITTER
       : text.PR_OPENED
@@ -141,10 +143,10 @@ module.exports = (app) => {
   // https://github.community/t/what-is-event-activity-types-marked-this-pull-request-as-draft-in-github-action/18306/3
   // https://github.community/t/no-way-to-update-pull-request-draft-state/141890
   app.on(['pull_request.ready_for_review'], async context => {
-      return context.octokit.issues.addLabels(context.issue({
-          labels: ['PR: awaiting review']
-      }));
-  });
+    return context.octokit.issues.addLabels(context.issue({
+      labels: ['PR: awaiting review']
+    }))
+  })
 
   app.on(['pull_request.edited'], async context => {
     const addLabels = []
@@ -152,10 +154,9 @@ module.exports = (app) => {
 
     const isDraft = !!context.payload.pull_request.draft
     if (isDraft) {
-        removeLabels.push(getRemoveLabel(context, 'PR: awaiting review'));
-    }
-    else {
-        addLabels.push('PR: awaiting review');
+      removeLabels.push(getRemoveLabel(context, 'PR: awaiting review'))
+    } else {
+      addLabels.push('PR: awaiting review')
     }
 
     const content = context.payload.pull_request.body
@@ -198,8 +199,8 @@ module.exports = (app) => {
   })
 
   app.on(['pull_request_review.submitted'], async context => {
-    if (context.payload.review.state === 'changes_requested'
-        && isCommitter(context.payload.review.author_association, context.payload.review.user.login)
+    if (context.payload.review.state === 'changes_requested' &&
+        isCommitter(context.payload.review.author_association, context.payload.review.user.login)
     ) {
       const addLabel = context.octokit.issues.addLabels(context.issue({
         labels: ['PR: revision needed']
@@ -236,13 +237,48 @@ function closeIssue (context) {
   return closeIssue
 }
 
-function commentIssue (context, commentText) {
-  const comment = context.octokit.issues.createComment(context.issue({
+async function commentIssue (context, commentText, needTranslate) {
+  console.log('commentIssue', needTranslate)
+  // create comment
+  await context.octokit.issues.createComment(context.issue({
     body: commentText
   }))
-  return comment
-}
 
-function replaceAll (str, search, replacement) {
-  return str.replace(new RegExp(search, 'g'), replacement)
+  // translate the issue if needed
+  if (needTranslate) {
+    let { title, body } = context.payload.issue
+    title = removeCodeAndComment(title)
+    body = removeCodeAndComment(body)
+
+    const isEnTitle = translator.detectEnglish(title)
+    const isEnBody = translator.detectEnglish(body)
+
+    let translatedTitle
+    let translatedBody
+
+    if (!isEnTitle) {
+      const res = await translator.translate(title)
+      translatedTitle = res && res.translated
+    }
+    if (!isEnBody) {
+      const res = await translator.translate(body)
+      translatedBody = res && res.translated
+    }
+
+    console.log('translatedTitle', translatedTitle, 'translatedBody', translatedBody)
+
+    if (!isEnBody && body !== translatedBody) {
+      const translateTip = replaceAll(
+        text.ISSUE_COMMENT_TRANSLATE_TIP,
+        'AT_ISSUE_AUTHOR',
+        '@' + context.payload.issue.user.login
+      )
+      const translateComment = `${translateTip}<details><summary>TRANSLATED</summary>${!isEnTitle && title !== translatedTitle ? '\n\n**TITLE**\n\n' + translatedTitle : ''}\n\n**BODY**\n\n${translatedBody}</details>`
+      await context.octokit.issues.createComment(
+        context.issue({
+          body: translateComment
+        })
+      )
+    }
+  }
 }
