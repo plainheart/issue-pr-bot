@@ -77,7 +77,7 @@ For (1), we have decided to use the GitHub issue lists exclusively for work that
 
 For (2), we have found that issues that do not provide proper information upfront usually results in terribly inefficient back-and-forth communication just to extract the basic information needed for actual triaging. This is exactly why we have created this app: to ensure that every issue is created with the necessary information, and to save time on both sides.`
 
-const ISSUE_COMMENT_TRANSLATE_TIP = 'AT_ISSUE_AUTHOR It seems you are not using English, I\'ve helped translated the content automatically. To make your issue understood by more people, we\'d like to suggest using English next time. 🤗'
+const ISSUE_COMMENT_TRANSLATE_TIP = 'AT_ISSUE_AUTHOR It seems you are not using English, I\'ve helped translate the content automatically. To make your issue understood by more people, we\'d like to suggest using English next time. 🤗'
 
 module.exports = {
   NOT_USING_TEMPLATE,
