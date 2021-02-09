@@ -7,6 +7,7 @@ const franc = require('franc')
  * @return {object} { translated: string, lang: string }
  */
 async function translate (rawContent) {
+  console.log(rawContent)
   if (!rawContent || !(rawContent = rawContent.trim())) {
     return
   }

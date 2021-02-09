@@ -244,14 +244,25 @@ async function commentIssue (context, commentText, needTranslate) {
     body: commentText
   }))
 
+  logger.info('issue needs translation: ' + needTranslate)
+
   // translate the issue if needed
   if (needTranslate) {
-    let { title, body } = context.payload.issue
-    title = removeCodeAndComment(title)
-    body = removeCodeAndComment(body)
+    const startTime = Date.now()
 
-    const isEnTitle = translator.detectEnglish(title)
-    const isEnBody = translator.detectEnglish(body)
+    let { title, body } = context.payload.issue
+    console.debug(context.payload)
+    console.debug('rawTitle\n', title, '\nrawBody\n', body)
+
+    const filteredTitle = removeCodeAndComment(title)
+    const filteredBody = removeCodeAndComment(body)
+
+    console.debug('title\n', title, '\nbody', body)
+
+    const isEnTitle = translator.detectEnglish(filteredTitle)
+    const isEnBody = translator.detectEnglish(filteredBody)
+
+    console.debug('isEnTitle: ', isEnTitle, 'isEnBody: ', isEnBody)
 
     let translatedTitle
     let translatedBody
@@ -265,20 +276,21 @@ async function commentIssue (context, commentText, needTranslate) {
       translatedBody = res && res.translated
     }
 
-    console.log('translatedTitle', translatedTitle, 'translatedBody', translatedBody)
+    console.debug('translatedTitle:\n', translatedTitle, '\ntranslatedBody:\n', translatedBody)
 
-    if (!isEnBody && translatedBody && body !== translatedBody) {
+    if (!isEnTitle || !isEnBody) {
       const translateTip = replaceAll(
         text.ISSUE_COMMENT_TRANSLATE_TIP,
         'AT_ISSUE_AUTHOR',
         '@' + context.payload.issue.user.login
       )
-      const translateComment = `${translateTip}\n<details><summary><b>TRANSLATED</b></summary><br>${!isEnTitle && translatedTitle && title !== translatedTitle ? '\n\n**TITLE**\n\n' + translatedTitle : ''}\n\n**BODY**\n\n${translatedBody}\n</details>`
+      const translateComment = `${translateTip}\n<details><summary><b>TRANSLATED</b></summary><br>${!isEnTitle && translatedTitle && title !== translatedTitle ? '\n\n**TITLE**\n\n' + translatedTitle : ''}${!isEnBody && translatedBody && body !== translatedBody ? '\n\n**BODY**\n\n' + translatedBody : ''}\n</details>`
       await context.octokit.issues.createComment(
         context.issue({
           body: translateComment
         })
       )
+      logger.info(`issue translated - ${Date.now() - startTime}ms`)
     }
   }
 }

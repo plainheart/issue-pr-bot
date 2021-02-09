@@ -1,8 +1,9 @@
 function removeCodeAndComment (body) {
   return body
-    .replace(/<!--[\w\W\r\n]*?-->/gmi, '')
+    .replace(/<!--[\w\W\s]*?-->/gmi, '')
     .replace(/`{3}(.|\n)*`{3}/gmi, '')
-    .replace(/#.*\n/g, '')
+    .replace(/#.*\s?/g, '')
+    .replace(/-{3}\s?/g, '')
 }
 
 function replaceAll (str, search, replacement) {
