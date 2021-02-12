@@ -259,26 +259,41 @@ async function commentIssue (context, commentText, needTranslate) {
 
     console.debug('title\n', title, '\nbody', body)
 
-    const isEnTitle = translator.detectEnglish(filteredTitle)
-    const isEnBody = translator.detectEnglish(filteredBody)
+    let isEnTitle = translator.detectEnglish(filteredTitle)
+    let isEnBody = translator.detectEnglish(filteredBody)
 
     console.debug('isEnTitle: ', isEnTitle, 'isEnBody: ', isEnBody)
 
     let translatedTitle
     let translatedBody
 
+    // if the franc has detected it's English, so no need to translate it.
     if (!isEnTitle) {
       const res = await translator.translate(title)
-      translatedTitle = res && res.translated
+      if (res) {
+        // determine if it's English according to the detected language by Google Translate
+        isEnTitle = res.lang === 'en'
+        translatedTitle = !isEnTitle && res.translated
+      }
     }
     if (!isEnBody) {
       const res = await translator.translate(body)
-      translatedBody = res && res.translated
+      if (res) {
+        isEnBody = res && res.lang === 'en'
+        translatedBody = !isEnBody && res.translated
+      }
     }
+
+    console.debug('isEnTitle: ', isEnTitle, 'isEnBody: ', isEnBody)
 
     console.debug('translatedTitle:\n', translatedTitle, '\ntranslatedBody:\n', translatedBody)
 
-    if (!isEnTitle || !isEnBody) {
+    if ((!isEnTitle || !isEnBody)
+        && (
+            (translatedTitle && translatedTitle !== title)
+            || (translatedBody && translatedBody !== body)
+        )
+    ) {
       const translateTip = replaceAll(
         text.ISSUE_COMMENT_TRANSLATE_TIP,
         'AT_ISSUE_AUTHOR',
