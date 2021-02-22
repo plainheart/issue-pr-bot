@@ -2,8 +2,7 @@ const Issue = require('./src/issue')
 const text = require('./src/text')
 const { isCommitter } = require('./src/coreCommitters')
 const logger = require('./src/logger')
-const translator = require('./src/translator')
-const { replaceAll, removeCodeAndComment } = require('./src/util')
+const { replaceAll } = require('./src/util')
 
 module.exports = (app) => {
   app.on(['issues.opened'], async context => {
@@ -245,10 +244,10 @@ function closeIssue (context) {
   )
 }
 
-async function commentIssue (context, commentText) {
+function commentIssue (context, commentText) {
   // create comment
   return context.octokit.issues.createComment(
-      context.issue({
+    context.issue({
       body: commentText
     })
   )
