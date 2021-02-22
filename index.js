@@ -9,10 +9,12 @@ module.exports = (app) => {
   app.on(['issues.opened'], async context => {
     const issue = new Issue(context)
 
+    await issue.init()
+
     // Ignore comment because it will commented when adding invalid label
     const comment = issue.response === text.NOT_USING_TEMPLATE
       ? Promise.resolve()
-      : commentIssue(context, issue.response, issue.response === text.ISSUE_CREATED)
+      : commentIssue(context, issue.response)
 
     const addLabels = issue.addLabels.length
       ? context.octokit.issues.addLabels(context.issue({
@@ -24,7 +26,11 @@ module.exports = (app) => {
       ? getRemoveLabel(issue.removeLabel)
       : Promise.resolve()
 
-    return Promise.all([comment, addLabels, removeLabel])
+    const translate = issue.response === text.ISSUE_CREATED
+      ? Promise.resolve()
+      : translateIssue(context, issue)
+
+    return Promise.all([comment, addLabels, removeLabel, translate])
   })
 
   app.on('issues.labeled', async context => {
@@ -231,81 +237,55 @@ function getRemoveLabel (context, name) {
 }
 
 function closeIssue (context) {
-  const closeIssue = context.octokit.issues.update(context.issue({
-    state: 'closed'
-  }))
-  return closeIssue
+  // close issue
+  return context.octokit.issues.update(
+    context.issue({
+      state: 'closed'
+    })
+  )
 }
 
-async function commentIssue (context, commentText, needTranslate) {
-  console.log('commentIssue', needTranslate)
+async function commentIssue (context, commentText) {
   // create comment
-  await context.octokit.issues.createComment(context.issue({
-    body: commentText
-  }))
+  return context.octokit.issues.createComment(
+      context.issue({
+      body: commentText
+    })
+  )
+}
 
-  logger.info('issue needs translation: ' + needTranslate)
+async function translateIssue (context, createdIssue) {
+  if (!createdIssue) {
+    return
+  }
+
+  console.log('translateIssue', createdIssue)
+
+  const {
+    title, body,
+    translatedTitle, translatedBody
+  } = createdIssue
+
+  const titleNeedsTranslation = translatedTitle && translatedTitle[0] !== title
+  const bodyNeedsTranslation = translatedBody && translatedBody[0] !== body
+  const needsTranslation = titleNeedsTranslation || bodyNeedsTranslation
+
+  logger.info('issue needs translation: ' + needsTranslation)
 
   // translate the issue if needed
-  if (needTranslate) {
-    const startTime = Date.now()
-
-    let { title, body } = context.payload.issue
-    console.debug(context.payload)
-    console.debug('rawTitle\n', title, '\nrawBody\n', body)
-
-    const filteredTitle = removeCodeAndComment(title)
-    const filteredBody = removeCodeAndComment(body)
-
-    console.debug('title\n', title, '\nbody', body)
-
-    let isEnTitle = translator.detectEnglish(filteredTitle)
-    let isEnBody = translator.detectEnglish(filteredBody)
-
-    console.debug('isEnTitle: ', isEnTitle, 'isEnBody: ', isEnBody)
-
-    let translatedTitle
-    let translatedBody
-
-    // if the franc has detected it's English, so no need to translate it.
-    if (!isEnTitle) {
-      const res = await translator.translate(title)
-      if (res) {
-        // determine if it's English according to the detected language by Google Translate
-        isEnTitle = res.lang === 'en'
-        translatedTitle = !isEnTitle && res.translated
-      }
-    }
-    if (!isEnBody) {
-      const res = await translator.translate(body)
-      if (res) {
-        isEnBody = res && res.lang === 'en'
-        translatedBody = !isEnBody && res.translated
-      }
-    }
-
-    console.debug('isEnTitle: ', isEnTitle, 'isEnBody: ', isEnBody)
-
+  if (needsTranslation) {
     console.debug('translatedTitle:\n', translatedTitle, '\ntranslatedBody:\n', translatedBody)
 
-    if ((!isEnTitle || !isEnBody)
-        && (
-            (translatedTitle && translatedTitle !== title)
-            || (translatedBody && translatedBody !== body)
-        )
-    ) {
-      const translateTip = replaceAll(
-        text.ISSUE_COMMENT_TRANSLATE_TIP,
-        'AT_ISSUE_AUTHOR',
-        '@' + context.payload.issue.user.login
-      )
-      const translateComment = `${translateTip}\n<details><summary><b>TRANSLATED</b></summary><br>${!isEnTitle && translatedTitle && title !== translatedTitle ? '\n\n**TITLE**\n\n' + translatedTitle : ''}${!isEnBody && translatedBody && body !== translatedBody ? '\n\n**BODY**\n\n' + translatedBody : ''}\n</details>`
-      await context.octokit.issues.createComment(
-        context.issue({
-          body: translateComment
-        })
-      )
-      logger.info(`issue translated - ${Date.now() - startTime}ms`)
-    }
+    const translateTip = replaceAll(
+      text.ISSUE_COMMENT_TRANSLATE_TIP,
+      'AT_ISSUE_AUTHOR',
+      '@' + createdIssue.issue.user.login
+    )
+    const translateComment = `${translateTip}\n<details><summary><b>TRANSLATED</b></summary><br>${titleNeedsTranslation ? '\n\n**TITLE**\n\n' + translatedTitle[0] : ''}${bodyNeedsTranslation ? '\n\n**BODY**\n\n' + translatedBody[0] : ''}\n</details>`
+    await context.octokit.issues.createComment(
+      context.issue({
+        body: translateComment
+      })
+    )
   }
 }

@@ -1,7 +1,6 @@
 const text = require('./text')
 const { isCommitter } = require('./coreCommitters')
-const { removeCodeAndComment } = require('./util')
-const { detectEnglish } = require('./translator')
+const { translate } = require('./translator')
 
 class Issue {
   constructor (context) {
@@ -9,31 +8,46 @@ class Issue {
     this.issue = context.payload.issue
     this.title = this.issue.title
     this.body = this.issue.body
+    this.translatedTitle = null
+    this.translatedBody = null
     this.issueType = null
+    this.response = null
     this.addLabels = []
     this.removeLabel = null
+  }
 
+  async init () {
     // if author is committer, do not check if using template
     const isCore = isCommitter(this.issue.author_association, this.issue.user.login)
     if (isCore || this.isUsingTemplate()) {
-      this.init()
+      if (this._contain('Steps to reproduce')) {
+        this.issueType = 'bug'
+      } else if (this._contain('What problem does this feature solve')) {
+        this.issueType = 'new-feature'
+      } else if (!isCore) {
+        this.response = text.NOT_USING_TEMPLATE
+        return
+      }
+
+      // translate issue
+      await this._translate()
+
+      this._computeResponse()
     } else {
       this.response = text.NOT_USING_TEMPLATE
       this.addLabels.push('invalid')
     }
   }
 
-  init () {
-    if (this._contain('Steps to reproduce')) {
-      this.issueType = 'bug'
-    } else if (this._contain('What problem does this feature solve')) {
-      this.issueType = 'new-feature'
-    } else {
-      this.response = text.NOT_USING_TEMPLATE
-      return
+  async _translate () {
+    let res = await translate(this.title)
+    if (res && res.lang !== 'en') {
+      this.translatedTitle = [res.translated, res.lang]
     }
-
-    this._computeResponse()
+    res = await translate(this.body)
+    if (res && res.lang !== 'en') {
+      this.translatedBody = [res.translated, res.lang]
+    }
   }
 
   isUsingTemplate () {
@@ -57,9 +71,7 @@ class Issue {
     this.addLabels.push(this.issueType)
 
     const isInEnglish = this._contain('This issue is in English')
-    if (isInEnglish &&
-      detectEnglish(removeCodeAndComment(this.title)) &&
-      detectEnglish(removeCodeAndComment(this.body))) {
+    if (isInEnglish || (!this.translatedTitle && !this.translatedBody)) {
       this.addLabels.push('en')
     }
   }
