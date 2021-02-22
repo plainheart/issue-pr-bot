@@ -8,6 +8,8 @@ class Issue {
     this.issue = context.payload.issue
     this.title = this.issue.title
     this.body = this.issue.body
+    // null -> failed to translate -> unknown language
+    // false -> translated -> not in English
     this.translatedTitle = null
     this.translatedBody = null
     this.issueType = null
@@ -29,10 +31,25 @@ class Issue {
         return
       }
 
+      if (!isCore) {
+        this.addLabels.push('pending')
+        this.addLabels.push('waiting-for: community')
+      }
+
+      this.issueType && this.addLabels.push(this.issueType)
+
       // translate issue
       await this._translate()
 
-      this._computeResponse()
+      // const isInEnglish = this._contain('This issue is in English')
+      const isInEnglish = (!this.translatedTitle && !this.translatedBody)
+        || (!this.title.trim() && !this.translatedBody)
+        || (!this.body.trim() && !this.translatedTitle)
+      if (isInEnglish) {
+        this.addLabels.push('en')
+      }
+
+      isCore || this._computeResponse()
     } else {
       this.response = text.NOT_USING_TEMPLATE
       this.addLabels.push('invalid')
@@ -41,12 +58,12 @@ class Issue {
 
   async _translate () {
     let res = await translate(this.title)
-    if (res && res.lang !== 'en') {
-      this.translatedTitle = [res.translated, res.lang]
+    if (res) {
+      this.translatedTitle = res.lang !== 'en' && [res.translated, res.lang]
     }
     res = await translate(this.body)
-    if (res && res.lang !== 'en') {
-      this.translatedBody = [res.translated, res.lang]
+    if (res) {
+      this.translatedBody = res.lang !== 'en' && [res.translated, res.lang]
     }
   }
 
@@ -64,15 +81,6 @@ class Issue {
         this.response = text.ISSUE_UPDATED
         this.removeLabel = 'waiting-for: help'
         break
-    }
-
-    this.addLabels.push('waiting-for: community')
-    this.addLabels.push('pending')
-    this.addLabels.push(this.issueType)
-
-    const isInEnglish = this._contain('This issue is in English')
-    if (isInEnglish || (!this.translatedTitle && !this.translatedBody)) {
-      this.addLabels.push('en')
     }
   }
 

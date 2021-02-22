@@ -11,7 +11,7 @@ module.exports = (app) => {
     await issue.init()
 
     // Ignore comment because it will commented when adding invalid label
-    const comment = issue.response === text.NOT_USING_TEMPLATE
+    const comment = !issue.response || issue.response === text.NOT_USING_TEMPLATE
       ? Promise.resolve()
       : commentIssue(context, issue.response)
 
