@@ -15,6 +15,9 @@ module.exports = (app) => {
       ? Promise.resolve()
       : commentIssue(context, issue.response)
 
+    // comment first
+    await comment
+
     const addLabels = issue.addLabels.length
       ? context.octokit.issues.addLabels(context.issue({
         labels: issue.addLabels
@@ -25,11 +28,15 @@ module.exports = (app) => {
       ? getRemoveLabel(issue.removeLabel)
       : Promise.resolve()
 
-    const translate = issue.response === text.ISSUE_CREATED
-      ? Promise.resolve()
-      : translateIssue(context, issue)
+    // then add and remove label
+    await Promise.all([addLabels, removeLabel])
 
-    return Promise.all([comment, addLabels, removeLabel, translate])
+    // translate finally
+    const translate = issue.response === text.ISSUE_CREATED
+      ? translateIssue(context, issue)
+      : Promise.resolve()
+
+    return translate
   })
 
   app.on('issues.labeled', async context => {
@@ -258,7 +265,7 @@ async function translateIssue (context, createdIssue) {
     return
   }
 
-  console.log('translateIssue', createdIssue)
+  console.log('translateIssue\n', createdIssue)
 
   const {
     title, body,
