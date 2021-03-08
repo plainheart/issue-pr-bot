@@ -132,6 +132,10 @@ module.exports = (app) => {
       labelList.push('Branch: ' + base.ref)
     }
 
+    if (await isFirstTimeContributor(context)) {
+      labelList.push('PR: first-time contributor')
+    }
+
     const comment = context.octokit.issues.createComment(context.issue({
       body: commentText
     }))
@@ -259,6 +263,22 @@ function commentIssue (context, commentText) {
       body: commentText
     })
   )
+}
+
+async function isFirstTimeContributor (context) {
+  try {
+    const response = await context.octokit.issues.listForRepo(
+      context.repo({
+        state: 'all',
+        creator: context.payload.pull_request.user.login
+      })
+    )
+    return response.data.filter(data => data.pull_request) === 1
+  }
+  catch (e) {
+    logger.error('failed to check first-time contributor')
+    logger.error(e)
+  }
 }
 
 async function translateIssue (context, createdIssue) {

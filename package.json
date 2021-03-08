@@ -4,7 +4,7 @@
   "private": true,
   "description": "A Probot app",
   "author": "plainheart <yhen@all-my-life.cn>",
-  "license": "ISC",
+  "license": "MIT",
   "repository": "https://github.com/plainheart/issue-pr-bot.git",
   "homepage": "https://github.com/plainheart/issue-pr-bot",
   "bugs": "https://github.com/plainheart/issue-pr-bot/issues",
