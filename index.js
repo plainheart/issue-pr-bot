@@ -112,8 +112,8 @@ module.exports = (app) => {
       : text.PR_OPENED
 
     const labelList = []
-    const isDraft = !!context.payload.pull_request.draft
-    if (isDraft) {
+    const isDraft = context.payload.pull_request.draft
+    if (!isDraft) {
       labelList.push('PR: awaiting review')
     }
     if (isCore) {
@@ -159,16 +159,23 @@ module.exports = (app) => {
   // https://github.community/t/what-is-event-activity-types-marked-this-pull-request-as-draft-in-github-action/18306/3
   // https://github.community/t/no-way-to-update-pull-request-draft-state/141890
   app.on(['pull_request.ready_for_review'], async context => {
-    return context.octokit.issues.addLabels(context.issue({
-      labels: ['PR: awaiting review']
-    }))
+    return context.octokit.issues.addLabels(
+      context.issue({
+        labels: ['PR: awaiting review']
+      })
+    )
+  })
+
+  // now it's available
+  app.on(['pull_request.converted_to_draft'], async context => {
+    return getRemoveLabel(context, 'PR: awaiting review')
   })
 
   app.on(['pull_request.edited'], async context => {
     const addLabels = []
     const removeLabels = []
 
-    const isDraft = !!context.payload.pull_request.draft
+    const isDraft = context.payload.pull_request.draft
     if (isDraft) {
       removeLabels.push(getRemoveLabel(context, 'PR: awaiting review'))
     } else {
@@ -192,9 +199,11 @@ module.exports = (app) => {
       removeLabels.push(getRemoveLabel(context, 'Branch: ' + changedBase.ref.from))
     }
 
-    const addLabel = context.octokit.issues.addLabels(context.issue({
-      labels: addLabels
-    }))
+    const addLabel = context.octokit.issues.addLabels(
+      context.issue({
+        labels: addLabels
+      })
+    )
 
     return Promise.all(removeLabels.concat([addLabel]))
   })
@@ -206,9 +215,11 @@ module.exports = (app) => {
     ]
     const isMerged = context.payload.pull_request.merged
     if (isMerged) {
-      const comment = context.octokit.issues.createComment(context.issue({
-        body: text.PR_MERGED
-      }))
+      const comment = context.octokit.issues.createComment(
+        context.issue({
+          body: text.PR_MERGED
+        })
+      )
       actions.push(comment)
     }
     return Promise.all(actions)
@@ -218,9 +229,11 @@ module.exports = (app) => {
     if (context.payload.review.state === 'changes_requested' &&
         isCommitter(context.payload.review.author_association, context.payload.review.user.login)
     ) {
-      const addLabel = context.octokit.issues.addLabels(context.issue({
-        labels: ['PR: revision needed']
-      }))
+      const addLabel = context.octokit.issues.addLabels(
+        context.issue({
+          labels: ['PR: revision needed']
+        })
+      )
 
       const removeLabel = getRemoveLabel(context, 'PR: awaiting review')
       return Promise.all([addLabel, removeLabel])
