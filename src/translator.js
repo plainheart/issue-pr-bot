@@ -1,16 +1,8 @@
 const googleTranslate = require('@vitalets/google-translate-api')
+const { translate: bingTranslate } = require('bing-translate-api')
 const franc = require('franc-min')
 
-/**
- * To translate the raw sentence to English
- * @param  {string} rawContent sentence to be translated
- * @return {object} { translated: string, lang: string }
- */
-async function translate (rawContent) {
-  console.log(rawContent)
-  if (!rawContent || !(rawContent = rawContent.trim())) {
-    return
-  }
+async function translateByGoogle (rawContent) {
   try {
     const res = await googleTranslate(
       rawContent,
@@ -19,14 +11,40 @@ async function translate (rawContent) {
         tld: 'cn'
       }
     )
-    console.log(res)
     return {
       translated: res.text,
-      lang: res.from.language.iso
+      lang: res.from.language.iso,
+      translator: 'google'
     }
   } catch (e) {
-    console.error('failed to translate', e)
+    console.error('failed to translate by google', e)
   }
+}
+
+async function translateByBing (rawContent) {
+  try {
+    const res = await bingTranslate(rawContent)
+    return {
+      translated: res.translation,
+      lang: res.language.from,
+      translator: 'bing'
+    }
+  } catch (e) {
+    console.error('failed to translate by bing', e)
+  }
+}
+
+/**
+ * To translate the raw sentence to English
+ * @param  {string} rawContent sentence to be translated
+ * @return {object} { translated: string, lang: string, translator: string }
+ */
+async function translate (rawContent) {
+  if (!rawContent || !(rawContent = rawContent.trim())) {
+    return
+  }
+  const translators = [translateByGoogle, translateByBing]
+  return translators[~~(Math.random() * translators.length)](rawContent)
 }
 
 /**
@@ -68,5 +86,7 @@ module.exports = {
   translate,
   detectLanguage,
   detectEnglish,
-  detectEnglishByGoogle
+  detectEnglishByGoogle,
+  translateByGoogle,
+  translateByBing
 }
