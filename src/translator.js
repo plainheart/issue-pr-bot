@@ -44,7 +44,17 @@ async function translate (rawContent) {
     return
   }
   const translators = [translateByGoogle, translateByBing]
-  return translators[~~(Math.random() * translators.length)](rawContent)
+  const randomIdx = ~~(Math.random() * translators.length)
+  let res = await translators[randomIdx](rawContent)
+  if (!res) {
+    for (let i = 0; i !== randomIdx && i < translators.length; i++) {
+      res = await translators[i](rawContent)
+      if (res) {
+        return res
+      }
+    }
+  }
+  return res
 }
 
 /**
