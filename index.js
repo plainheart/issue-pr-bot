@@ -148,11 +148,15 @@ module.exports = (app) => {
   })
 
   app.on(['pull_request.synchronize'], async context => {
-    const addLabel = context.octokit.issues.addLabels(context.issue({
-      labels: ['PR: awaiting review']
-    }))
     const removeLabel = getRemoveLabel(context, 'PR: revision needed')
-    return Promise.all([addLabel, removeLabel])
+    const addLabel = context.payload.pull_request.draft
+      ? Promise.resolve()
+      : context.octokit.issues.addLabels(
+          context.issue({
+            labels: ['PR: awaiting review']
+          })
+        )
+    return Promise.all([removeLabel, addLabel])
   })
 
   // TODO: seems no event for convert_to_draft
