@@ -40,6 +40,10 @@ module.exports = (app) => {
   })
 
   app.on('issues.labeled', async context => {
+    // const response = await context.octokit.issues.listEvents(
+    //   context.issue({})
+    // )
+    // console.log(response)
     const replaceAt = function (comment) {
       return replaceAll(
         comment,
@@ -244,6 +248,11 @@ module.exports = (app) => {
     }
   })
 
+  // TODO： only events, not webhooks
+  // app.on(['issue.marked_as_duplicate'], async context => {
+  //   console.log('marked_as_duplicate', context)
+  // })
+
   // it can be app.onError since v11.1.0
   app.webhooks.onError(error => {
     logger.error('bot occured an error')
@@ -325,11 +334,15 @@ async function translateIssue (context, createdIssue) {
       'AT_ISSUE_AUTHOR',
       '@' + createdIssue.issue.user.login
     )
-    const translateComment = `${translateTip}\n<details><summary><b>TRANSLATED</b></summary><br>${titleNeedsTranslation ? '\n\n**TITLE**\n\n' + translatedTitle[0] : ''}${bodyNeedsTranslation ? '\n\n**BODY**\n\n' + translatedBody[0] : ''}\n</details>`
+    const translateComment = `${translateTip}\n<details><summary><b>TRANSLATED</b></summary><br>${titleNeedsTranslation ? '\n\n**TITLE**\n\n' + translatedTitle[0] : ''}${bodyNeedsTranslation ? '\n\n**BODY**\n\n' + fixMarkdown(translatedBody[0]) : ''}\n</details>`
     await context.octokit.issues.createComment(
       context.issue({
         body: translateComment
       })
     )
   }
+}
+
+function fixMarkdown(body) {
+  return body.replace(/\! \[/g, '![').replace(/\] \(/g, '](')
 }
