@@ -24,4 +24,4 @@ jobs:
       - name: Wake up bot
         run: |
           npm ci
-          node src/glitch/wakup.js
+          node src/glitch/wakeup.js
