@@ -3,6 +3,7 @@ name: Wake up Bot on Glitch
 on:
   schedule:
     - cron: '* * * * *'
+  workflow_dispatch:
 
 jobs:
   wakeup:
