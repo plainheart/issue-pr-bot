@@ -2,7 +2,7 @@ name: Wake up Bot on Glitch
 
 on:
   schedule:
-    - cron: '0/2 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -22,7 +22,16 @@ jobs:
           node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org/
 
+      - name: Cache node modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Intsall dependencies
+        run: npm ci
+
       - name: Wake up bot
-        run: |
-          npm ci
-          node src/glitch/wakeup.js
+        run: node src/glitch/wakeup.js
