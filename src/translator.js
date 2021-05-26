@@ -1,6 +1,7 @@
 const googleTranslate = require('@plainheart/google-translate-api')
 const { translate: bingTranslate } = require('bing-translate-api')
 const franc = require('franc-min')
+const logger = require('./logger')
 
 async function translateByGoogle (rawContent) {
   try {
@@ -19,7 +20,8 @@ async function translateByGoogle (rawContent) {
       translator: 'google'
     }
   } catch (e) {
-    console.error('failed to translate by google', e)
+    logger.error('failed to translate by google')
+    logger.error(e)
   }
 }
 
@@ -32,7 +34,8 @@ async function translateByBing (rawContent) {
       translator: 'bing'
     }
   } catch (e) {
-    console.error('failed to translate by bing', e)
+    logger.error('failed to translate by bing')
+    logger.error(e)
   }
 }
 
