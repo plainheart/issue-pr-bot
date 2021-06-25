@@ -27,7 +27,7 @@ async function translateByGoogle (rawContent) {
 
 async function translateByBing (rawContent) {
   try {
-    const res = await bingTranslate(rawContent)
+    const res = await bingTranslate(rawContent, null, null, false, false, 'cn')
     return {
       translated: res.translation,
       lang: res.language.from,
