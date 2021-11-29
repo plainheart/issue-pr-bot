@@ -43,7 +43,7 @@ module.exports = (app) => {
     // unlabel waiting-for: community if issue was closed by the author self or committer
     const sender = context.payload.sender.login;
     if (context.payload.issue.user.login === sender || isCommitter(null, sender)) {
-      return getRemoveLabel(context, labelText.WAITING_FOR_COMMUNITY);
+      return getRemoveLabel(context, 'waiting-for: community');
     }
   })
 
