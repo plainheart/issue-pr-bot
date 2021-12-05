@@ -101,6 +101,7 @@ module.exports = (app) => {
         return commentIssue(context, replaceAt(text.ISSUE_TAGGED_PRIORITY_HIGH))
 
       case 'resolved':
+      case 'duplicate':
         return Promise.all([
           closeIssue(context),
           getRemoveLabel(context, 'waiting-for: community')
@@ -115,21 +116,33 @@ module.exports = (app) => {
       return
     }
 
-    const commenter = context.payload.comment.user.login
+    const comment = context.payload.comment
+    const commenter = comment.user.login
     const isCommenterAuthor = commenter === context.payload.issue.user.login
+    const isCore = isCommitter(comment.author_association, commenter)
     let removeLabel
     let addLabel
-    if (isCommitter(context.payload.comment.author_association, commenter) && !isCommenterAuthor) {
-      // New comment from core committers
-      removeLabel = getRemoveLabel(context, 'waiting-for: community')
+    if (isCore && !isCommenterAuthor) {
+      if (comment.body.indexOf('Duplicate of #') > -1) {
+        addLabel = 'duplicate'
+      }
+      else {
+        // New comment from core committers
+        removeLabel = getRemoveLabel(context, 'waiting-for: community');
+      }
     } else if (isCommenterAuthor) {
       // New comment from issue author
       removeLabel = getRemoveLabel(context, 'waiting-for: author')
-      addLabel = context.octokit.issues.addLabels(context.issue({
-        labels: ['waiting-for: community']
-      }))
+      addLabel = 'waiting-for: community'
     }
-    return Promise.all([removeLabel, addLabel])
+    return Promise.all([
+      removeLabel,
+      addLabel && context.octokit.issues.addLabels(
+        context.issue({
+          labels: [addLabel]
+        })
+      )
+    ])
   })
 
   app.on(['pull_request.opened'], async context => {
