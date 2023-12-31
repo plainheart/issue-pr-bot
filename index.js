@@ -270,14 +270,23 @@ module.exports = (/** @type {Probot} */ app) => {
       getRemoveLabel(context, 'PR: revision needed'),
       getRemoveLabel(context, 'PR: awaiting review')
     ]
-    const isMerged = context.payload.pull_request.merged
-    if (isMerged) {
+    const pr = context.payload.pull_request
+    if (pr.merged) {
       const comment = context.octokit.issues.createComment(
         context.issue({
           body: text.PR_MERGED
         })
       )
       actions.push(comment)
+    }
+    // delete created branch by bot
+    if (pr.head.ref.includes('update-notice-year') && pr.user.type == 'Bot') {
+      const deleteBranch = context.octokit.git.deleteRef(
+        context.repo({
+          ref: 'heads/' + pr.head.ref
+        })
+      )
+      actions.push(deleteBranch)
     }
     return Promise.all(actions)
   })
