@@ -30,7 +30,6 @@
   "devDependencies": {
     "@octokit/graphql": "^7.0.2",
     "@octokit/graphql-schema": "^14.42.0",
-    "@octokit/rest": "^20.0.2",
     "jest": "^29.7.0",
     "nock": "^13.3.8",
     "nodemon": "^3.0.1",
