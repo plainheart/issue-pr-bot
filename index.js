@@ -288,7 +288,7 @@ module.exports = (/** @type {Probot} */ app) => {
       )
       actions.push(deleteBranch)
     }
-    return Promise.all(actions)
+    return Promise.allSettled(actions)
   })
 
   app.on(['pull_request_review.submitted'], async context => {
