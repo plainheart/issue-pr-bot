@@ -1,0 +1,23 @@
+name: Update NOTICE year
+
+on:
+  schedule:
+    - cron: '0 0 1 1 *'
+  workflow_dispatch:
+
+jobs:
+  wakeup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const updateNoticeYear = require('./github/update-notice-year.js')
+            await updateNoticeYear(github)
+
+
+
+
