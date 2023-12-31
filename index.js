@@ -3,8 +3,18 @@ const text = require('./src/text')
 const { isCommitter } = require('./src/coreCommitters')
 const logger = require('./src/logger')
 const { replaceAll, removeHTMLComment } = require('./src/util')
+const updateNoticeYearTask = require('./src/task/update-notice-year')
 
-module.exports = (app) => {
+/**
+ * @typedef {import('probot').Probot} Probot
+ * @typedef {import('probot').Context} Context
+ */
+
+module.exports = (/** @type {Probot} */ app) => {
+  // app.auth(11347838).then(octokit => {
+  //   updateNoticeYearTask.scheduled(octokit)
+  // })
+
   app.on(['issues.opened'], async context => {
     const issue = new Issue(context)
 
